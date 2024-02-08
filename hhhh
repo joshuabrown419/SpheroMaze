@@ -1,0 +1,44 @@
+from time import sleep
+from typing import Dict
+import math
+
+from pysphero.core import Sphero
+from pysphero.device_api.sensor import Quaternion, Velocity
+from pysphero.bluetooth.bluepy_adapter import BluepyAdapter
+
+
+def notify_callback(data: Dict):
+    vel = math.sqrt(data.get(Velocity.x)**2 + data.get(Velocity.y)**2)
+    if vel < 1 and not delay:
+        stopped = True
+    print(vel)
+
+
+def main():
+    mac_address = "EA:44:16:06:73:13"
+    with Sphero(mac_address=mac_address) as sphero:
+        sphero.ble_adapter.close()
+        sphero.ble_adapter = BluepyAdapter(mac_address)
+        sphero.power.wake()
+        sphero.sensor.set_notify(notify_callback, Quaternion, Velocity)
+
+        global delay
+        global stopped
+
+        heading = 0
+        delay = True
+        stopped = False
+
+        while True:
+            if stopped:
+                heading = heading + 90
+                delay = True
+                stopped = False
+
+            sphero.driving.drive_with_heading(50, heading)
+            sleep(1)
+            delay = False
+
+
+if __name__ == "__main__":
+    main()
